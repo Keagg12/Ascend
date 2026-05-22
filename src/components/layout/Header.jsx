@@ -1,45 +1,139 @@
-import React from 'react';
-import { useGame } from '../../store/GameContext';
-import PsychBar from '../shared/PsychBar';
-import { FaUserAstronaut } from 'react-icons/fa';
+import { motion } from 'framer-motion'
+import { useGame } from '../../store/GameContext'
 
-const Header = () => {
-  const { state } = useGame();
-  const { user } = state;
+/**
+ * Header
+ * Sticky top bar showing:
+ *   - ASCEND wordmark
+ *   - Mode badge (Recovery / Hardcore)
+ *   - Combo indicator (clickable → Focus page)
+ *   - Current rank icon + level
+ *
+ * Always visible above page content (z-index: 600).
+ */
+export default function Header() {
+  const { levelData, rank, psych, setPage } = useGame()
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/50 px-6 py-4">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.3)]">
-            <FaUserAstronaut className="text-2xl text-white" />
-          </div>
+    <header
+      style={{
+        position:       'sticky',
+        top:            0,
+        zIndex:         600,
+        background:     'rgba(3,3,10,0.98)',
+        backdropFilter: 'blur(30px)',
+        WebkitBackdropFilter: 'blur(30px)',
+        borderBottom:   '1px solid rgba(255,255,255,0.05)',
+        padding:        '8px 1.25rem',
+        display:        'flex',
+        alignItems:     'center',
+        justifyContent: 'space-between',
+      }}
+    >
+      {/* ── Left: wordmark + mode badge ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* Wordmark */}
+        <span
+          style={{
+            fontFamily:    'Orbitron, monospace',
+            fontSize:      16,
+            fontWeight:    900,
+            color:         '#00e5ff',
+            letterSpacing: 5,
+            textShadow:    '0 0 20px rgba(0,229,255,0.5)',
+            userSelect:    'none',
+          }}
+        >
+          ASCEND
+        </span>
+
+        {/* Recovery badge */}
+        {psych.mode === 'recovery' && (
+          <span
+            style={{
+              fontSize:      9,
+              color:         '#a855f7',
+              letterSpacing: 2,
+              animation:     'pulse 2s ease-in-out infinite',
+              userSelect:    'none',
+            }}
+          >
+            🌿 REC
+          </span>
+        )}
+
+        {/* Hardcore badge */}
+        {psych.mode === 'hardcore' && (
+          <span
+            style={{
+              fontSize:      9,
+              color:         '#f59e0b',
+              letterSpacing: 2,
+              animation:     'pulse 2s ease-in-out infinite',
+              userSelect:    'none',
+            }}
+          >
+            ⚡ HC
+          </span>
+        )}
+      </div>
+
+      {/* ── Right: combo pill + rank ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+
+        {/* Combo indicator — only shown at combo ≥ 3, clickable to Focus */}
+        {psych.combo >= 3 && (
+          <motion.button
+            onClick={() => setPage('focus')}
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.94 }}
+            style={{
+              fontFamily:    'Orbitron, monospace',
+              fontSize:      10,
+              color:         '#ff6b35',
+              fontWeight:    900,
+              background:    'rgba(255,107,53,0.08)',
+              border:        '1px solid rgba(255,107,53,0.25)',
+              borderRadius:  6,
+              padding:       '3px 8px',
+              cursor:        'pointer',
+              animation:     'pulse 1.5s ease-in-out infinite',
+              userSelect:    'none',
+            }}
+          >
+            🔥 ×{psych.combo}
+          </motion.button>
+        )}
+
+        {/* Rank icon + level */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 15 }}>{rank.icon}</span>
           <div>
-            <h1 className="text-lg font-black text-white leading-none uppercase italic tracking-tighter">
-              {user.name} <span className="text-cyan-400 ml-1">LVL {user.level}</span>
-            </h1>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
-              Rank: {user.rank}
-            </p>
+            <div
+              style={{
+                fontFamily: 'Orbitron, monospace',
+                fontSize:   12,
+                fontWeight: 700,
+                color:      '#00e5ff',
+                lineHeight: 1.2,
+              }}
+            >
+              Lv.{levelData.lv}
+            </div>
+            <div
+              style={{
+                fontSize:      8,
+                color:         '#3a3a80',
+                letterSpacing: 1,
+                lineHeight:    1,
+              }}
+            >
+              {rank.label}
+            </div>
           </div>
-        </div>
-        
-        <div className="hidden md:block w-64">
-          <PsychBar value={user.psych} />
         </div>
 
-        <div className="text-right">
-          <div className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-1">Ascension Progress</div>
-          <div className="h-1.5 w-32 bg-slate-800 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]" 
-              style={{ width: `${(user.xp / user.maxXp) * 100}%` }}
-            ></div>
-          </div>
-        </div>
       </div>
     </header>
-  );
-};
-
-export default Header;
+  )
+}

@@ -1,15 +1,39 @@
-import React from 'react';
-
-const SectionHeader = ({ title, subtitle }) => {
+/**
+ * SectionHeader
+ * Consistent page-level heading used at the top of every page.
+ *
+ * Props:
+ *   title — main heading string
+ *   sub   — optional subtitle string
+ */
+export default function SectionHeader({ title, sub }) {
   return (
-    <div className="mb-6">
-      <h2 className="text-2xl font-black text-white uppercase italic tracking-wider leading-none flex items-center">
-        <span className="w-2 h-6 bg-cyan-500 mr-3 skew-x-[-20deg]"></span>
+    <div style={{ marginBottom: '1.25rem' }}>
+      <h2
+        style={{
+          fontFamily: 'Orbitron, monospace',
+          color:      '#00e5ff',
+          fontSize:   20,
+          fontWeight: 900,
+          marginBottom: sub ? 3 : 0,
+          textShadow: '0 0 20px rgba(0,229,255,0.3)',
+        }}
+      >
         {title}
       </h2>
-      {subtitle && <p className="text-slate-500 text-sm mt-1 ml-5">{subtitle}</p>}
-    </div>
-  );
-};
 
-export default SectionHeader;
+      {sub && (
+        <p
+          style={{
+            color:      '#5558aa',
+            fontSize:   13,
+            fontFamily: 'Rajdhani, sans-serif',
+            lineHeight: 1.5,
+          }}
+        >
+          {sub}
+        </p>
+      )}
+    </div>
+  )
+}

@@ -1,24 +1,74 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'framer-motion'
 
-const PsychBar = ({ value, max = 100 }) => {
-  const percentage = (value / max) * 100;
-  
+/**
+ * PsychBar
+ * Animated horizontal bar for the psychological meter system.
+ *
+ * Props:
+ *   label — meter name (e.g. 'Momentum')
+ *   value — 0–100 number
+ *   color — hex accent color
+ *   icon  — emoji prefix
+ */
+export default function PsychBar({ label, value, color, icon }) {
+  const clamped = Math.min(100, Math.max(0, value))
+
   return (
-    <div className="w-full">
-      <div className="flex justify-between items-end mb-1">
-        <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-tighter">Psych Core</span>
-        <span className="text-xs font-mono text-indigo-300">{value}/{max}</span>
+    <div>
+      {/* Header row */}
+      <div
+        style={{
+          display:        'flex',
+          justifyContent: 'space-between',
+          alignItems:     'center',
+          marginBottom:   4,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 11,
+            color:    '#8888cc',
+            display:  'flex',
+            alignItems: 'center',
+            gap:      4,
+          }}
+        >
+          {icon} {label}
+        </span>
+
+        <span
+          style={{
+            fontSize:   11,
+            fontFamily: 'Orbitron, monospace',
+            fontWeight: 700,
+            color,
+          }}
+        >
+          {clamped}%
+        </span>
       </div>
-      <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden border border-indigo-900/50">
-        <motion.div 
-          initial={{ width: 0 }}
-          animate={{ width: `${percentage}%` }}
-          className="h-full bg-gradient-to-r from-indigo-600 to-purple-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+
+      {/* Track */}
+      <div
+        style={{
+          height:       4,
+          borderRadius: 100,
+          background:   'rgba(255,255,255,0.05)',
+          overflow:     'hidden',
+        }}
+      >
+        {/* Fill */}
+        <motion.div
+          animate={{ width: `${clamped}%` }}
+          transition={{ duration: 1, ease: 'easeOut' }}
+          style={{
+            height:       '100%',
+            borderRadius: 100,
+            background:   `linear-gradient(90deg, ${color}70, ${color})`,
+            boxShadow:    `0 0 6px ${color}50`,
+          }}
         />
       </div>
     </div>
-  );
-};
-
-export default PsychBar;
+  )
+}

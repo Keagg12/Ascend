@@ -1,25 +1,65 @@
-import React from 'react';
-
-const AmbientBackground = () => {
+/**
+ * AmbientBackground
+ * Three fixed radial gradient blobs that create the
+ * atmospheric neon glow behind all page content.
+ * Pointer-events: none — never interferes with interaction.
+ * z-index: 0 — always behind content (content uses z-index: 1+).
+ */
+export default function AmbientBackground() {
   return (
-    <div className="fixed inset-0 -z-10 bg-slate-950 overflow-hidden">
-      {/* Radial Gradients for Depth */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-900/20 rounded-full blur-[120px]"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-900/20 rounded-full blur-[120px]"></div>
-      
-      {/* Grid Effect */}
-      <div 
-        className="absolute inset-0 opacity-[0.03]"
+    <div
+      aria-hidden="true"
+      style={{
+        position:      'fixed',
+        inset:         0,
+        pointerEvents: 'none',
+        overflow:      'hidden',
+        zIndex:        0,
+      }}
+    >
+      {/* Cyan blob — top-left */}
+      <div
         style={{
-          backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`,
-          backgroundSize: '40px 40px'
+          position:     'absolute',
+          top:          '10%',
+          left:         '15%',
+          width:        600,
+          height:       600,
+          borderRadius: '50%',
+          background:   'radial-gradient(circle, rgba(0,229,255,0.028), transparent 70%)',
+          filter:       'blur(60px)',
+          animation:    'float 9s ease-in-out infinite',
         }}
-      ></div>
+      />
 
-      {/* Noise Overlay */}
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+      {/* Purple blob — bottom-right */}
+      <div
+        style={{
+          position:     'absolute',
+          bottom:       '5%',
+          right:        '10%',
+          width:        500,
+          height:       500,
+          borderRadius: '50%',
+          background:   'radial-gradient(circle, rgba(168,85,247,0.025), transparent 70%)',
+          filter:       'blur(60px)',
+          animation:    'float 11s ease-in-out infinite reverse',
+        }}
+      />
+
+      {/* Amber blob — mid-right */}
+      <div
+        style={{
+          position:     'absolute',
+          top:          '40%',
+          right:        0,
+          width:        400,
+          height:       400,
+          borderRadius: '50%',
+          background:   'radial-gradient(circle, rgba(245,158,11,0.018), transparent 70%)',
+          filter:       'blur(60px)',
+        }}
+      />
     </div>
-  );
-};
-
-export default AmbientBackground;
+  )
+}

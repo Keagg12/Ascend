@@ -1,30 +1,134 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion'
 
-const LevelUpModal = ({ level, isVisible, onClose }) => {
+/**
+ * LevelUpModal
+ * Full-screen animated celebration shown when the player levels up.
+ * Wrap in <AnimatePresence> at call site.
+ *
+ * Props:
+ *   data    — { lv: number, rank: RankObject }
+ *   onClose — () => void
+ */
+export default function LevelUpModal({ data, onClose }) {
+  const { lv, rank } = data
+
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <div className="fixed inset-0 flex items-center justify-center z-[100] bg-black/80 backdrop-blur-sm">
-          <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.5, opacity: 0 }}
-            className="bg-slate-900 border-2 border-cyan-500 p-8 rounded-2xl text-center shadow-[0_0_50px_rgba(6,182,212,0.5)]"
-          >
-            <h2 className="text-4xl font-black text-cyan-400 mb-2 italic uppercase">Level Up!</h2>
-            <p className="text-xl text-slate-300 mb-6">You have reached level <span className="text-cyan-400 font-bold">{level}</span></p>
-            <button 
-              onClick={onClose}
-              className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-8 rounded-full transition-all"
-            >
-              Continue Ascension
-            </button>
-          </motion.div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{    opacity: 0 }}
+      onClick={onClose}
+      style={{
+        position:       'fixed',
+        inset:          0,
+        background:     'rgba(0,0,0,0.92)',
+        backdropFilter: 'blur(20px)',
+        display:        'flex',
+        alignItems:     'center',
+        justifyContent: 'center',
+        zIndex:         5000,
+        cursor:         'pointer',
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.3, rotate: -12, opacity: 0 }}
+        animate={{ scale: 1,   rotate: 0,   opacity: 1 }}
+        exit={{    scale: 0.3, opacity: 0 }}
+        transition={{ type: 'spring', damping: 10, stiffness: 130 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background:   '#07070f',
+          border:       `2px solid ${rank.color}`,
+          borderRadius: 28,
+          padding:      '3rem 2.5rem',
+          textAlign:    'center',
+          boxShadow:    `0 0 100px ${rank.glow}, 0 0 200px ${rank.glow}`,
+          maxWidth:     380,
+          width:        '90%',
+        }}
+      >
+        {/* Floating star */}
+        <div
+          style={{
+            fontSize:  64,
+            marginBottom: 6,
+            animation: 'float 3s ease-in-out infinite',
+          }}
+        >
+          ✨
         </div>
-      )}
-    </AnimatePresence>
-  );
-};
 
-export default LevelUpModal;
+        {/* Label */}
+        <div
+          style={{
+            fontFamily:    'Orbitron, monospace',
+            fontSize:      11,
+            color:         rank.color,
+            letterSpacing: 5,
+            marginBottom:  6,
+          }}
+        >
+          LEVEL UP
+        </div>
+
+        {/* Level number */}
+        <div
+          style={{
+            fontFamily:            'Orbitron, monospace',
+            fontSize:              88,
+            fontWeight:            900,
+            lineHeight:            1,
+            background:            'linear-gradient(135deg, #00e5ff, #a855f7)',
+            WebkitBackgroundClip:  'text',
+            WebkitTextFillColor:   'transparent',
+          }}
+        >
+          {lv}
+        </div>
+
+        {/* Rank */}
+        <div
+          style={{
+            fontSize:     20,
+            color:        '#e8e8ff',
+            marginTop:    12,
+            fontFamily:   'Rajdhani, sans-serif',
+            fontWeight:   700,
+          }}
+        >
+          {rank.icon} {rank.label}
+        </div>
+
+        {/* Flavour text */}
+        <div
+          style={{
+            color:     '#5558aa',
+            fontSize:  13,
+            marginTop: 6,
+          }}
+        >
+          Your legend grows.
+        </div>
+
+        {/* Continue button */}
+        <button
+          onClick={onClose}
+          style={{
+            marginTop:     24,
+            background:    `${rank.color}20`,
+            border:        `1px solid ${rank.color}60`,
+            borderRadius:  10,
+            color:         rank.color,
+            padding:       '10px 40px',
+            cursor:        'pointer',
+            fontSize:      12,
+            fontFamily:    'Orbitron, monospace',
+            letterSpacing: 3,
+          }}
+        >
+          CONTINUE
+        </button>
+      </motion.div>
+    </motion.div>
+  )
+}

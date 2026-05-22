@@ -2,29 +2,124 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* ── Google Fonts fallback already loaded in index.html ── */
+
+/* ── Global Reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  background-color: #03030a;
+  color: #e8e8ff;
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.2); border-radius: 4px; }
+
+/* ── Focus Reset ── */
+input:focus, textarea:focus, select:focus, button:focus {
+  outline: none;
+}
+
+/* ── Color scheme for native inputs ── */
+input, textarea, select {
   color-scheme: dark;
 }
 
-body {
-  @apply bg-slate-950 text-slate-200 antialiased selection:bg-cyan-500/30 selection:text-cyan-200;
-  margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+/* ── Keyframe Animations ── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
 }
 
-#root {
-  min-height: 100vh;
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
 }
 
-/* Custom scrollbar for futuristic feel */
-::-webkit-scrollbar {
-  width: 6px;
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
-::-webkit-scrollbar-track {
-  @apply bg-slate-950;
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+@keyframes rippleOut {
+  0%   { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(3.5); opacity: 0; }
+}
+
+@keyframes hcPulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(245, 158, 11, 0.3); }
+  50%       { box-shadow: 0 0 28px rgba(245, 158, 11, 0.6); }
+}
+
+@keyframes xpFloat {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-100px) scale(1.4); }
+}
+
+/* ── Utility Classes ── */
+.font-orbitron { font-family: 'Orbitron', monospace; }
+.font-rajdhani { font-family: 'Rajdhani', sans-serif; }
+
+.animate-float     { animation: float 4s ease-in-out infinite; }
+.animate-pulse-rpg { animation: pulse 2s ease-in-out infinite; }
+.animate-hcpulse   { animation: hcPulse 2s ease-in-out infinite; }
+
+/* ── Glass Morphism ── */
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
+
+.glass-deep {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+}
+
+/* ── Neon Glow Utilities ── */
+.neon-cyan  { text-shadow: 0 0 16px rgba(0, 229, 255, 0.7); }
+.neon-purple { text-shadow: 0 0 16px rgba(168, 85, 247, 0.7); }
+.neon-amber  { text-shadow: 0 0 16px rgba(245, 158, 11, 0.7); }
+
+/* ── XP Bar Gradient ── */
+.xp-bar-fill {
+  background: linear-gradient(90deg, #00e5ff, #a855f7);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+}
+
+/* ── Ambient Blobs ── */
+.ambient-blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Page Transition Helpers ── */
+.page-enter {
+  animation: fadeSlideIn 0.3s ease forwards;
+}
+
+/* ── Tooltip Style Override for Recharts ── */
+.recharts-tooltip-wrapper {
+  z-index: 100 !important;
 }
