@@ -33,17 +33,27 @@ export function GameProvider({ children }) {
   const [page, setPage]               = useState('dashboard')
 
   /**
-   * pendingUndo — shown in UndoBar for UNDO_TTL ms after each positive log.
-   * Shape: { id, habit, xpGain, date } | null
-   * 'id' is a unique string per log event (used as React key in UndoBar).
-   * Only set for POSITIVE habits — vices are intentional, no undo offered.
+   * pendingUndos — list of actions shown in UndoBar for UNDO_TTL ms.
+   * Shape: { id, habit, xpGain, date, expiresAt }[]
    */
-  const [pendingUndo, setPendingUndo] = useState(null)
+  const [pendingUndos, setPendingUndos] = useState([])
 
   const floatId    = useRef(0)
   const prevLv     = useRef(null)
   const loaded     = useRef(false)
-  const undoTimer  = useRef(null)   // auto-clears pendingUndo after UNDO_TTL
+
+  // ── Auto-cleanup expired undos ──────────────────────────────────────────
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPendingUndos((prev) => {
+        const now = Date.now()
+        const filtered = prev.filter((u) => u.expiresAt > now)
+        if (filtered.length === prev.length) return prev
+        return filtered
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // ── Load from localStorage ────────────────────────────────────────────────
   useEffect(() => {
@@ -157,18 +167,18 @@ export function GameProvider({ children }) {
 
     // ── Set up undo (positive habits only) ──────────────────────────────
     if (habit.pos) {
-      clearTimeout(undoTimer.current)
-
       const undoId = `undo_${Date.now()}_${habit.id}`
-      setPendingUndo({ id: undoId, habit, xpGain, date: today })
-
-      undoTimer.current = setTimeout(() => {
-        setPendingUndo(null)
-      }, UNDO_TTL)
+      const newUndo = {
+        id:        undoId,
+        habit,
+        xpGain,
+        date:      today,
+        expiresAt: Date.now() + UNDO_TTL,
+      }
+      setPendingUndos((prev) => [...prev, newUndo].slice(-5))
     } else {
-      // Logging a vice clears any pending undo (different action context)
-      clearTimeout(undoTimer.current)
-      setPendingUndo(null)
+      // Logging a vice clears all pending undos (different action context)
+      setPendingUndos([])
     }
 
     setState((s) => {
@@ -308,15 +318,17 @@ export function GameProvider({ children }) {
 
   // ── undoLastHabit ─────────────────────────────────────────────────────────
   /**
-   * Reverses the most recent positive habit log within the undo window.
-   * Safely decrements XP, totalDone, done[date][id], habitCounts, and history.
-   * Does NOT reverse streak or combo — too complex and rarely needed.
+   * Reverses a specific habit log within the undo window.
+   * If no ID is provided, undos the most recent one.
    */
-  function undoLastHabit() {
-    if (!pendingUndo) return
+  function undoLastHabit(undoId) {
+    const target = undoId
+      ? pendingUndos.find((u) => u.id === undoId)
+      : pendingUndos[pendingUndos.length - 1]
 
-    clearTimeout(undoTimer.current)
-    const { habit, xpGain, date } = pendingUndo
+    if (!target) return
+
+    const { habit, xpGain, date } = target
 
     setState((s) => {
       const dayDone     = s.done[date] ?? {}
@@ -361,7 +373,7 @@ export function GameProvider({ children }) {
       }
     })
 
-    setPendingUndo(null)
+    setPendingUndos((prev) => prev.filter((u) => u.id !== target.id))
     showToast('↩ Action undone', '#a855f7')
   }
 
@@ -414,8 +426,7 @@ export function GameProvider({ children }) {
 
   // ── resetAll ──────────────────────────────────────────────────────────────
   function resetAll() {
-    clearTimeout(undoTimer.current)
-    setPendingUndo(null)
+    setPendingUndos([])
     const name = state.settings?.name ?? 'Hero'
     setState({ ...INITIAL_STATE, settings: { ...INITIAL_STATE.settings, name } })
     prevLv.current = 1
@@ -431,7 +442,7 @@ export function GameProvider({ children }) {
     floats, levelUpData, setLevelUpData,
     bossWin, setBossWin, toast,
     // Undo system
-    pendingUndo, undoLastHabit,
+    pendingUndos, undoLastHabit,
     // Derived
     allHabits, todayDone, levelData, rank, todayXP, psych,
   }

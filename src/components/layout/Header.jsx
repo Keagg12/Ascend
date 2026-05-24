@@ -31,7 +31,6 @@ export default function Header() {
         borderBottom:   '1px solid rgba(255,255,255,0.05)',
         padding:        '9px 1.25rem 0',
         // Needed for absolute XP bar
-        position:       'sticky',
       }}
     >
       {/* ── Main row ── */}
