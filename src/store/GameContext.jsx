@@ -61,7 +61,26 @@ export function GameProvider({ children }) {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw)
-        setState((prev) => ({ ...prev, ...parsed }))
+        
+        // ── Migration: Ensure habits exist and have weights ──────────────────
+        let migratedHabits = parsed.habits
+        if (!migratedHabits) {
+          // If no habits in state, combine default ones with any old customHabits
+          const baseHabits = [...DEFAULT_HABITS, ...(parsed.customHabits || [])]
+          migratedHabits = baseHabits.map(h => ({
+            ...h,
+            weight: h.weight ?? (h.pos ? Math.abs(h.xp || 20) : 0)
+          }))
+        } else {
+          // Ensure all existing habits have a weight property
+          migratedHabits = migratedHabits.map(h => ({
+            ...h,
+            weight: h.weight ?? (h.pos ? Math.abs(h.xp || 20) : 0)
+          }))
+        }
+
+        const newState = { ...parsed, habits: migratedHabits }
+        setState((prev) => ({ ...prev, ...newState }))
         prevLv.current = calcLevel(parsed.totalXP ?? 0).lv
       } else {
         prevLv.current = 1
@@ -81,36 +100,6 @@ export function GameProvider({ children }) {
       // Storage quota exceeded — fail silently
     }
   }, [state])
-
-  // ── Achievement + Level-up watcher ───────────────────────────────────────
-  useEffect(() => {
-    if (!loaded.current || prevLv.current === null) return
-    const { lv }      = calcLevel(state.totalXP)
-    const enriched    = { ...state, level: lv }
-    const newUnlocked = { ...state.unlocked }
-    let changed       = false
-
-    for (const ach of ACHIEVEMENTS) {
-      if (!newUnlocked[ach.id] && ach.check(enriched)) {
-        newUnlocked[ach.id] = true
-        changed = true
-        setTimeout(() => showToast(`🏆 ${ach.label} unlocked!`, '#f59e0b'), 700)
-      }
-    }
-
-    if (changed) setState((s) => ({ ...s, unlocked: newUnlocked }))
-
-    if (prevLv.current !== null && lv > prevLv.current) {
-      setLevelUpData({ lv, rank: getRank(lv) })
-      prevLv.current = lv
-    } else if (prevLv.current === null) {
-      prevLv.current = lv
-    }
-  }, [
-    state.totalXP, state.totalDone, state.streak,
-    state.noRelapse, state.focusSessions,
-    state.customHabitsCreated, state.phoenix, state.bossWins, state.maxCombo,
-  ])
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function showToast(msg, color = '#00e5ff') {
@@ -135,18 +124,81 @@ export function GameProvider({ children }) {
   }
 
   // ── allHabits memo ────────────────────────────────────────────────────────
-  const allHabits = useMemo(
-    () => [...DEFAULT_HABITS, ...(state.customHabits ?? [])],
-    [state.customHabits]
-  )
+  const allHabits = useMemo(() => {
+    const rawHabits = state.habits ?? []
+    const posHabits = rawHabits.filter((h) => h.pos)
+    const totalWeight = posHabits.reduce((acc, h) => acc + (h.weight || 0) * (h.max || 1), 0)
+    const targetXP = state.settings?.targetDailyXP ?? 100
+
+    return rawHabits.map((h) => {
+      let dynamicXP = h.xp
+      if (h.pos) {
+        dynamicXP = totalWeight > 0 
+          ? Math.round(((h.weight || 0) / totalWeight) * targetXP)
+          : 0
+      }
+      return { ...h, dynamicXP }
+    })
+  }, [state.habits, state.settings?.targetDailyXP])
 
   // ── Derived values ────────────────────────────────────────────────────────
   const td        = todayStr()
-  const todayDone = state.done[td] ?? {}
-  const levelData = calcLevel(state.totalXP)
-  const rank      = getRank(levelData.lv)
-  const todayXP   = (state.history.find((h) => h.date === td) ?? {}).xpEarned ?? 0
-  const psych     = calcPsych(state)
+  const todayDone = useMemo(() => state.done[td] ?? {}, [state.done, td])
+  const levelData = useMemo(() => calcLevel(state.totalXP), [state.totalXP])
+  const rank      = useMemo(() => getRank(levelData.lv), [levelData.lv])
+  const todayXP   = useMemo(() => (state.history.find((h) => h.date === td) ?? {}).xpEarned ?? 0, [state.history, td])
+  const psych     = useMemo(() => calcPsych(state), [state])
+
+  // ── Achievement + Level-up watcher ───────────────────────────────────────
+  useEffect(() => {
+    if (!loaded.current || prevLv.current === null) return
+    
+    const { lv }      = levelData
+    const enriched    = { 
+      ...state, 
+      level: lv,
+      todayDone,
+      allHabits,
+      todayXP
+    }
+    const newUnlocked = { ...state.unlocked }
+    let changed       = false
+
+    for (const ach of ACHIEVEMENTS) {
+      if (!newUnlocked[ach.id] && ach.check(enriched)) {
+        newUnlocked[ach.id] = true
+        changed = true
+        setTimeout(() => showToast(`🏆 ${ach.label} unlocked!`, '#f59e0b'), 700)
+      }
+    }
+
+    if (changed) setState((s) => ({ ...s, unlocked: newUnlocked }))
+
+    if (prevLv.current !== null && lv > prevLv.current) {
+      setLevelUpData({ lv, rank: getRank(lv) })
+      prevLv.current = lv
+    } else if (prevLv.current === null) {
+      prevLv.current = lv
+    }
+  }, [
+    state.totalXP, state.totalDone, state.streak,
+    state.noRelapse, state.focusSessions,
+    state.customHabitsCreated, state.phoenix, state.bossWins, state.maxCombo,
+    todayDone, allHabits, todayXP 
+  ])
+
+  // ── XP Calculation Helper ─────────────────────────────────────────────────
+  function getHabitXP(habit) {
+    if (!habit.pos) return habit.xp // Vices keep fixed penalty for now
+
+    const posHabits = allHabits.filter((h) => h.pos)
+    const totalWeight = posHabits.reduce((acc, h) => acc + (h.weight || 0) * (h.max || 1), 0)
+    if (totalWeight <= 0) return 0
+
+    const targetXP = state.settings?.targetDailyXP ?? 100
+    // (Weight / TotalWeight) * TargetXP / MaxExecutions
+    return (habit.weight / totalWeight) * targetXP
+  }
 
   // ── logHabit ──────────────────────────────────────────────────────────────
   function logHabit(habit, event) {
@@ -156,7 +208,8 @@ export function GameProvider({ children }) {
 
     if (currentCount >= habit.max) return
 
-    const xpGain = calcXPGain(habit.xp, {
+    const baseXP = getHabitXP(habit)
+    const xpGain = calcXPGain(baseXP, {
       hardcore:   state.settings?.hardcore ?? false,
       combo:      state.combo ?? 0,
       isPos:      habit.pos,
@@ -247,10 +300,10 @@ export function GameProvider({ children }) {
       }
 
       // ── Task / vice counts for history ─────────────────────────────────
-      const posTaskCount = allHabits
+      const posTaskCount = (s.habits ?? [])
         .filter((h) => h.pos)
         .reduce((a, h) => a + ((newDone[today] ?? {})[h.id] ?? 0), 0)
-      const viceCount = allHabits
+      const viceCount = (s.habits ?? [])
         .filter((h) => !h.pos)
         .reduce((a, h) => a + ((newDone[today] ?? {})[h.id] ?? 0), 0)
 
@@ -348,7 +401,7 @@ export function GameProvider({ children }) {
       const newDone = { ...s.done, [date]: newDayDone }
 
       // Recompute task count for history
-      const posTaskCount = allHabits
+      const posTaskCount = (s.habits ?? [])
         .filter((h) => h.pos)
         .reduce((a, h) => a + ((newDayDone[h.id] ?? 0)), 0)
 
@@ -405,7 +458,7 @@ export function GameProvider({ children }) {
   function addCustomHabit(habit) {
     setState((s) => ({
       ...s,
-      customHabits:        [...(s.customHabits ?? []), habit],
+      habits: [...(s.habits ?? []), habit],
       customHabitsCreated: (s.customHabitsCreated ?? 0) + 1,
     }))
   }
@@ -414,7 +467,15 @@ export function GameProvider({ children }) {
   function removeCustomHabit(id) {
     setState((s) => ({
       ...s,
-      customHabits: (s.customHabits ?? []).filter((h) => h.id !== id),
+      habits: (s.habits ?? []).filter((h) => h.id !== id),
+    }))
+  }
+
+  // ── updateHabit ───────────────────────────────────────────────────────────
+  function updateHabit(updated) {
+    setState((s) => ({
+      ...s,
+      habits: (s.habits ?? []).map((h) => (h.id === updated.id ? updated : h)),
     }))
   }
 
@@ -437,7 +498,7 @@ export function GameProvider({ children }) {
     state, setState,
     page, setPage,
     logHabit, logMood,
-    addJournal, addCustomHabit, removeCustomHabit,
+    addJournal, addCustomHabit, removeCustomHabit, updateHabit,
     incFocusSessions, resetAll, showToast,
     floats, levelUpData, setLevelUpData,
     bossWin, setBossWin, toast,

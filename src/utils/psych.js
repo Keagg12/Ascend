@@ -98,7 +98,7 @@ export function calcPsych(state) {
 export function calcDayQuality(todayDone, allHabits, mood) {
   const positiveScore = allHabits
     .filter((h) => h.pos)
-    .reduce((acc, h) => acc + (todayDone[h.id] || 0) * (h.xp / 3), 0)
+    .reduce((acc, h) => acc + (todayDone[h.id] || 0) * ((h.dynamicXP ?? h.xp ?? 0) / 3), 0)
 
   const moodScore = (mood ?? 5) * 4
 
@@ -106,7 +106,7 @@ export function calcDayQuality(todayDone, allHabits, mood) {
     .filter((h) => !h.pos)
     .reduce((acc, h) => acc + (todayDone[h.id] || 0) * 8, 0)
 
-  return Math.min(100, Math.max(0, Math.round(positiveScore + moodScore - viceDeduction)))
+  return Math.min(100, Math.max(0, Math.round(positiveScore + moodScore - viceDeduction || 0)))
 }
 
 /**

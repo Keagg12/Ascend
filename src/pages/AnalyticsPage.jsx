@@ -184,8 +184,8 @@ function RadarBalance({ radarData }) {
  * Top 6 positive habits ranked by lifetime completion count,
  * shown as labelled bar rows.
  */
-function HabitLeaderboard({ habitCounts }) {
-  const positiveHabits = DEFAULT_HABITS.filter((h) => h.pos)
+function HabitLeaderboard({ habitCounts, allHabits }) {
+  const positiveHabits = allHabits.filter((h) => h.pos)
 
   const ranked = [...positiveHabits]
     .sort((a, b) => (habitCounts?.[b.id] || 0) - (habitCounts?.[a.id] || 0))
@@ -519,7 +519,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Habit leaderboard */}
-      <HabitLeaderboard habitCounts={state.habitCounts} />
+      <HabitLeaderboard habitCounts={state.habitCounts} allHabits={allHabits} />
 
       {/* Year heatmap */}
       <YearHeatmap history={state.history} />

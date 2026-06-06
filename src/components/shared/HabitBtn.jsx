@@ -133,7 +133,7 @@ export default function HabitBtn({ habit, cnt, maxed, onLog }) {
         >
           {maxed
             ? '✓ Done'
-            : `${habit.pos ? '+' : ''}${habit.xp}`
+            : `${habit.pos ? '+' : ''}${Math.round(habit.dynamicXP ?? habit.xp)}`
           }
         </span>
 

@@ -168,33 +168,29 @@ function ToggleRow({ label, desc, value, onToggle }) {
 }
 
 /**
- * CustomHabitForm
- * Inline form for creating a new custom habit.
- * Shown/hidden via the Add / Cancel button in CustomHabitsPanel.
+ * HabitForm
+ * Inline form for creating or editing a habit.
  */
-function CustomHabitForm({ onAdd, onCancel }) {
-  const [form, setForm] = useState({
+function HabitForm({ initialData, onSave, onCancel }) {
+  const [form, setForm] = useState(initialData || {
     label: '',
     icon:  '⭐',
-    xp:    20,
+    weight: 10,
     cat:   'Mind',
     max:   1,
+    pos:   true,
   })
 
   function handleSubmit() {
     const trimmed = form.label.trim()
     if (!trimmed) return
-    const id = `custom_${Date.now()}`
-    onAdd({
-      id,
+    onSave({
+      ...form,
+      id:     form.id || `custom_${Date.now()}`,
       label:  trimmed,
-      icon:   form.icon,
-      xp:     Number(form.xp),
-      pos:    Number(form.xp) >= 0,
-      cat:    form.cat,
+      weight: Number(form.weight),
       max:    Number(form.max),
-      stat:   'Custom',
-      custom: true,
+      custom: form.custom ?? true,
     })
   }
 
@@ -213,6 +209,8 @@ function CustomHabitForm({ onAdd, onCancel }) {
           gap:           10,
           marginBottom:  12,
           paddingTop:    4,
+          paddingBottom: 12,
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
         }}
       >
         {/* Icon picker */}
@@ -251,7 +249,7 @@ function CustomHabitForm({ onAdd, onCancel }) {
           </div>
         </div>
 
-        {/* Name + XP */}
+        {/* Name + Weight */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <div>
             <div
@@ -285,12 +283,12 @@ function CustomHabitForm({ onAdd, onCancel }) {
                 fontFamily:    'Rajdhani, sans-serif',
               }}
             >
-              XP Value (+/-)
+              XP Weight
             </div>
             <input
               type="number"
-              value={form.xp}
-              onChange={(e) => setForm((f) => ({ ...f, xp: e.target.value }))}
+              value={form.weight}
+              onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
               style={inputStyle}
             />
           </div>
@@ -316,7 +314,7 @@ function CustomHabitForm({ onAdd, onCancel }) {
               onChange={(e) => setForm((f) => ({ ...f, cat: e.target.value }))}
               style={selectStyle}
             >
-              {CUSTOM_HABIT_CATS.map((c) => (
+              {CUSTOM_HABIT_CATS.concat(['Vice']).map((c) => (
                 <option key={c} value={c} style={{ background: '#0a0a1a' }}>
                   {c}
                 </option>
@@ -342,7 +340,7 @@ function CustomHabitForm({ onAdd, onCancel }) {
               onChange={(e) => setForm((f) => ({ ...f, max: e.target.value }))}
               style={selectStyle}
             >
-              {[1, 2, 3, 4, 5].map((n) => (
+              {[1, 2, 3, 4, 5, 10, 20].map((n) => (
                 <option key={n} value={n} style={{ background: '#0a0a1a' }}>
                   {n}×
                 </option>
@@ -351,8 +349,46 @@ function CustomHabitForm({ onAdd, onCancel }) {
           </div>
         </div>
 
+        {/* Type (Positive / Vice) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+           <button
+             onClick={() => setForm(f => ({ ...f, pos: true, weight: Math.max(1, f.weight) }))}
+             style={{
+               flex: 1,
+               padding: '6px',
+               borderRadius: 6,
+               fontSize: 11,
+               fontFamily: 'Rajdhani',
+               fontWeight: 700,
+               border: `1px solid ${form.pos ? '#22c55e' : 'rgba(255,255,255,0.1)'}`,
+               background: form.pos ? 'rgba(34,197,94,0.1)' : 'transparent',
+               color: form.pos ? '#22c55e' : '#5558aa',
+               cursor: 'pointer'
+             }}
+           >
+             Positive Habit
+           </button>
+           <button
+             onClick={() => setForm(f => ({ ...f, pos: false, weight: 0 }))}
+             style={{
+               flex: 1,
+               padding: '6px',
+               borderRadius: 6,
+               fontSize: 11,
+               fontFamily: 'Rajdhani',
+               fontWeight: 700,
+               border: `1px solid ${!form.pos ? '#ef4444' : 'rgba(255,255,255,0.1)'}`,
+               background: !form.pos ? 'rgba(239,68,68,0.1)' : 'transparent',
+               color: !form.pos ? '#ef4444' : '#5558aa',
+               cursor: 'pointer'
+             }}
+           >
+             Vice / Penalty
+           </button>
+        </div>
+
         {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
           <motion.button
             onClick={handleSubmit}
             whileHover={{ scale: 1.02 }}
@@ -370,7 +406,7 @@ function CustomHabitForm({ onAdd, onCancel }) {
               fontFamily:   'Rajdhani, sans-serif',
             }}
           >
-            Add Habit
+            {initialData ? 'Save Changes' : 'Add Habit'}
           </motion.button>
 
           <motion.button
@@ -396,11 +432,12 @@ function CustomHabitForm({ onAdd, onCancel }) {
 }
 
 /**
- * CustomHabitsPanel
- * Manages creating and removing custom habits.
+ * HabitManagerPanel
+ * Manages all habits.
  */
-function CustomHabitsPanel({ customHabits, onAdd, onRemove }) {
+function HabitManagerPanel({ habits, onAdd, onRemove, onUpdate }) {
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
 
   return (
     <div style={{ ...glass, marginBottom: '0.85rem', padding: '1.25rem' }}>
@@ -422,11 +459,11 @@ function CustomHabitsPanel({ customHabits, onAdd, onRemove }) {
             fontFamily:    'Rajdhani, sans-serif',
           }}
         >
-          Custom Habits
+          Habit Manager
         </div>
 
         <motion.button
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => { setShowForm(v => !v); setEditingId(null); }}
           whileHover={{ scale: 1.04 }}
           style={{
             background:   'rgba(0,229,255,0.10)',
@@ -440,90 +477,104 @@ function CustomHabitsPanel({ customHabits, onAdd, onRemove }) {
             fontWeight:   700,
           }}
         >
-          {showForm ? 'Cancel' : '+ Add Habit'}
+          {showForm ? 'Cancel' : '+ Add New'}
         </motion.button>
       </div>
 
       {/* Add form */}
       <AnimatePresence>
-        {showForm && (
-          <CustomHabitForm
-            onAdd={(h) => { onAdd(h); setShowForm(false) }}
+        {showForm && !editingId && (
+          <HabitForm
+            onSave={(h) => { onAdd(h); setShowForm(false) }}
             onCancel={() => setShowForm(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* Empty state */}
-      {customHabits.length === 0 && !showForm && (
-        <div
-          style={{
-            fontSize:   12,
-            color:      '#3a3a88',
-            textAlign:  'center',
-            padding:    '1rem 0',
-            fontFamily: 'Rajdhani, sans-serif',
-          }}
-        >
-          No custom habits yet. Build your own ritual.
-        </div>
-      )}
+      {/* Habit list */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {habits.map((h) => (
+          <div key={h.id}>
+             <AnimatePresence>
+               {editingId === h.id ? (
+                 <HabitForm
+                   initialData={h}
+                   onSave={(updated) => { onUpdate(updated); setEditingId(null); }}
+                   onCancel={() => setEditingId(null)}
+                 />
+               ) : (
+                <motion.div
+                  layout
+                  style={{
+                    display:     'flex',
+                    alignItems:  'center',
+                    gap:         10,
+                    padding:     '10px 0',
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                  }}
+                >
+                  <span style={{ fontSize: 22 }}>{h.icon}</span>
 
-      {/* Custom habit rows */}
-      {customHabits.map((h) => (
-        <motion.div
-          key={h.id}
-          layout
-          style={{
-            display:     'flex',
-            alignItems:  'center',
-            gap:         10,
-            padding:     '8px 0',
-            borderBottom: '1px solid rgba(255,255,255,0.04)',
-          }}
-        >
-          <span style={{ fontSize: 22 }}>{h.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        fontSize:   13,
+                        fontWeight: 600,
+                        color:      h.pos ? '#e8e8ff' : '#ef4444',
+                        fontFamily: 'Rajdhani, sans-serif',
+                      }}
+                    >
+                      {h.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize:   10,
+                        color:      '#5558aa',
+                        fontFamily: 'Rajdhani, sans-serif',
+                      }}
+                    >
+                      {h.cat} · weight {h.weight} · max {h.max}×
+                    </div>
+                  </div>
 
-          <div style={{ flex: 1 }}>
-            <div
-              style={{
-                fontSize:   13,
-                fontWeight: 600,
-                color:      '#e8e8ff',
-                fontFamily: 'Rajdhani, sans-serif',
-              }}
-            >
-              {h.label}
-            </div>
-            <div
-              style={{
-                fontSize:   10,
-                color:      '#5558aa',
-                fontFamily: 'Rajdhani, sans-serif',
-              }}
-            >
-              {h.cat} · {h.xp >= 0 ? '+' : ''}{h.xp} XP · max {h.max}×/day
-            </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      onClick={() => setEditingId(h.id)}
+                      style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 6,
+                        color: '#8888aa',
+                        padding: '4px 8px',
+                        cursor: 'pointer',
+                        fontSize: 10,
+                        fontFamily: 'Rajdhani'
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => onRemove(h.id)}
+                      style={{
+                        background:   'rgba(239,68,68,0.10)',
+                        border:       '1px solid rgba(239,68,68,0.20)',
+                        borderRadius: 6,
+                        color:        '#ef4444',
+                        padding:      '4px 8px',
+                        cursor:       'pointer',
+                        fontSize:     10,
+                        fontFamily:   'Rajdhani',
+                      }}
+                    >
+                      Del
+                    </button>
+                  </div>
+                </motion.div>
+               )}
+             </AnimatePresence>
           </div>
-
-          <motion.button
-            onClick={() => onRemove(h.id)}
-            whileHover={{ scale: 1.08 }}
-            style={{
-              background:   'rgba(239,68,68,0.10)',
-              border:       '1px solid rgba(239,68,68,0.20)',
-              borderRadius: 6,
-              color:        '#ef4444',
-              padding:      '4px 10px',
-              cursor:       'pointer',
-              fontSize:     11,
-              fontFamily:   'Rajdhani, sans-serif',
-            }}
-          >
-            Remove
-          </motion.button>
-        </motion.div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
@@ -644,6 +695,7 @@ export default function SettingsPage() {
     setState,
     addCustomHabit,
     removeCustomHabit,
+    updateHabit,
     resetAll,
   } = useGame()
 
@@ -713,11 +765,42 @@ export default function SettingsPage() {
         />
       </div>
 
-      {/* Custom habit builder */}
-      <CustomHabitsPanel
-        customHabits={state.customHabits || []}
+      {/* Target Daily XP */}
+      <div style={{ ...glass, marginBottom: '0.85rem', padding: '1.25rem' }}>
+        <div
+          style={{
+            fontSize:      9,
+            color:         '#5558aa',
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            marginBottom:  8,
+            fontFamily:    'Rajdhani, sans-serif',
+          }}
+        >
+          Daily XP Goal
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <input
+            type="number"
+            value={state.settings?.targetDailyXP ?? 100}
+            onChange={(e) => updateSetting('targetDailyXP', Number(e.target.value))}
+            style={{ ...inputStyle, flex: 1 }}
+          />
+          <div style={{ fontSize: 12, color: '#00e5ff', fontWeight: 700, fontFamily: 'Orbitron' }}>
+            XP
+          </div>
+        </div>
+        <div style={{ fontSize: 10, color: '#5558aa', marginTop: 6, fontFamily: 'Rajdhani' }}>
+          Total XP earned when all daily habits are completed.
+        </div>
+      </div>
+
+      {/* Habit Manager */}
+      <HabitManagerPanel
+        habits={state.habits || []}
         onAdd={addCustomHabit}
         onRemove={removeCustomHabit}
+        onUpdate={updateHabit}
       />
 
       {/* Rank ladder */}

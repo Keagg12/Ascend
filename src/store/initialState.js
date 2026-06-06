@@ -1,3 +1,5 @@
+import { DEFAULT_HABITS } from '../constants/habits'
+
 /**
  * INITIAL_STATE
  * The canonical default state for a brand-new Ascend player.
@@ -36,6 +38,10 @@ export const INITIAL_STATE = {
   bossWins: 0,         // total Sunday boss battles completed
   bossWinDates: {},    // { [YYYY-MM-DD]: true } — prevents double-claim
 
+  // ── Habits ────────────────────────────────────────────────
+  habits: DEFAULT_HABITS.map(h => ({ ...h, weight: h.pos ? Math.abs(h.xp) : 0 })),
+  customHabitsCreated: 0,      // lifetime count for achievements
+
   // ── Habit usage counts ────────────────────────────────────
   habitCounts: {},     // { [habitId]: number } — lifetime total per habit
 
@@ -58,19 +64,16 @@ export const INITIAL_STATE = {
   // Each entry: { date, text, mood }
   journal: [],         // max 90 entries (oldest dropped)
 
-  // ── Custom Habits ─────────────────────────────────────────
-  customHabits: [],            // array of habit objects (same shape as DEFAULT_HABITS)
-  customHabitsCreated: 0,      // lifetime count
-
   // ── Focus Mode ────────────────────────────────────────────
   focusSessions: 0,    // total completed focus timer sessions
 
   // ── Settings ─────────────────────────────────────────────
   settings: {
-    name:        'Hero',   // player display name
-    hardcore:    false,    // 2× XP gains AND 2× penalties
-    sound:       true,     // Web Audio API sound effects
-    targetWake:  '06:00',  // target wake-up time (HH:MM)
+    name:          'Hero',   // player display name
+    hardcore:      false,    // 2× XP gains AND 2× penalties
+    sound:         true,     // Web Audio API sound effects
+    targetWake:    '06:00',  // target wake-up time (HH:MM)
+    targetDailyXP: 100,      // Max XP per day from habits
   },
 }
 
